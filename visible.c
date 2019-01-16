@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "graphics.h"
+extern GLubyte  world[WORLDX][WORLDY][WORLDZ];
 
 #define OCTREE_LEVEL 1
 
