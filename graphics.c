@@ -98,7 +98,7 @@ void  draw2Dline(int, int, int, int, int);
 void  draw2Dbox(int, int, int, int);
 void  draw2Dtriangle(int, int, int, int, int, int);
 void  set2Dcolour(float []);
-
+void  draw2Dpoint(int x, int y, int pointSize, int smooth);
 /***************/
 
 
@@ -836,6 +836,18 @@ void graphicsInit(int *argc, char **argv) {
    if (WORLDZ > skySize)
       skySize = (float) WORLDZ;
    skySize *= 2.0;
+}
+
+void draw2Dpoint(int x, int y, int pointSize, int smooth) {
+    glPointSize(pointSize);
+    if (smooth) {
+        glEnable(GL_POINT_SMOOTH);
+    } else {
+        glDisable(GL_POINT_SMOOTH);
+    }
+    glBegin(GL_POINTS);
+    glVertex2f(x, y);
+    glEnd();
 }
 
 /* functions to draw 2d images on screen */

@@ -52,6 +52,7 @@ extern void  draw2Dline(int, int, int, int, int);
 extern void  draw2Dbox(int, int, int, int);
 extern void  draw2Dtriangle(int, int, int, int, int, int);
 extern void  set2Dcolour(float []);
+extern void  draw2Dpoint(int x, int y, int pointSize, int smooth);
 
 
     /* flag which is set to 1 when flying behaviour is desired */
@@ -101,24 +102,42 @@ void collisionResponse() {
     float nextX, nextY, nextZ;
     float currX, currY, currZ;
     getViewPosition(&nextX, &nextY, &nextZ);
+    getOldViewPosition(&currX, &currY, &currZ);
     nextX *= -1;
     nextY *= -1;
     nextZ *= -1;
-    int posX, posY, posZ;
+
+    //for use when checking the contents of the world array
+    int posX, posY, posZ; //floored integers of next positions
+    int currXi, currYi, currZi; //floored integers of current positions
+
     posX = (int)floor(nextX);
     posY = (int)floor(nextY);
     posZ = (int)floor(nextZ);
+    currXi = (int)floor(currX);
+    currYi = (int)floor(currY);
+    currZi = (int)floor(currZ);
 
-    getOldViewPosition(&currX, &currY, &currZ);
+    
 
     //detects out of bounds
     if (nextX < 0 || nextY < 0 || nextZ < 0 || nextX > 100 || nextY > 50 || nextZ > 100) {
         setViewPosition(currX, currY, currZ);
     }
+
     //detects collision
     //holy shit this actually works. Probably hacky. Tweak the added values to pos* to expand the hit box
     if (world[posX][posY][posZ] != 0 && (nextX < posX + 1.2 || nextY < posY + 1.2 || nextZ < posZ + 1.2)) {
         setViewPosition(currX, currY, currZ);
+
+        /* attempt to allow the user to 'slide off of collisions. Needs work.
+        if (world[posX][currYi][currZi] != 0 && nextX < posX + 1.2) setViewPosition(currX, nextY, nextZ);
+        if (world[currXi][posY][currZi] != 0 && nextY < posY + 1.2) setViewPosition(nextX, currY, nextZ);
+        if (world[currXi][currYi][posZ] != 0 && nextZ < posZ + 1.2) setViewPosition(nextX, nextY, currZ);
+        if (world[posX][posY][currZi] != 0 && (nextX < posX + 1.2 || nextY < posY + 1.2) setViewPosition(currX, currY, nextZ);
+        if (world[posX][currYi][posZ] != 0 && (nextX < posX + 1.2 || nextZ < posZ + 1.2) setViewPosition(currX, nextY, currZ);
+        if (world[currXi][posY][posZ] != 0 && (nextY < posY + 1.2 || nextZ < posZ + 1.2) set Viewposition(nextX, currY, currZ);
+        */
     }
 }
 
@@ -127,7 +146,7 @@ void collisionResponse() {
     /* draws 2D shapes on screen */
     /* use the following functions:             */
     /*  draw2Dline(int, int, int, int, int);        */
-    /*  draw2Dbox(int, int, int, int);          */
+    /*  draw2Dbox(int x1, int y1, int x2, int y2);          */
     /*  draw2Dtriangle(int, int, int, int, int, int);   */
     /*  set2Dcolour(float []);              */
     /* colour must be set before other functions are called */
@@ -145,12 +164,10 @@ void draw2D() {
          set2Dcolour(black);
          draw2Dbox(500, 380, 524, 388);
       }
-   } else {
-
-    /* your code goes here */
+   }
+   else {
 
    }
-
 }
 
 
@@ -236,7 +253,7 @@ float *la;
                }
            }
        }
-       //builds a 50x50 yellow platform at height zero and two multi coloured walls along the  x-axis
+       //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
        for (x = 0; x < WORLDX -1; x++) {
            for (y = 2; y < WORLDY - 1; y++) {
                world[x][y][0] = (x % 6) + 1;
