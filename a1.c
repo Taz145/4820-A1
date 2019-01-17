@@ -15,73 +15,73 @@
 
 extern GLubyte world[WORLDX][WORLDY][WORLDZ];
 
-    /* mouse function called by GLUT when a button is pressed or released */
+/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
 
-    /* initialize graphics library */
+/* initialize graphics library */
 extern void graphicsInit(int *, char **);
 
-    /* lighting control */
+/* lighting control */
 extern void setLightPosition(GLfloat, GLfloat, GLfloat);
 extern GLfloat* getLightPosition();
 
-    /* viewpoint control */
+/* viewpoint control */
 extern void setViewPosition(float, float, float);
 extern void getViewPosition(float *, float *, float *);
 extern void getOldViewPosition(float *, float *, float *);
 extern void setViewOrientation(float, float, float);
 extern void getViewOrientation(float *, float *, float *);
 
-    /* add cube to display list so it will be drawn */
+/* add cube to display list so it will be drawn */
 extern void addDisplayList(int, int, int);
 
-    /* mob controls */
+/* mob controls */
 extern void createMob(int, float, float, float, float);
 extern void setMobPosition(int, float, float, float, float);
 extern void hideMob(int);
 extern void showMob(int);
 
-    /* player controls */
+/* player controls */
 extern void createPlayer(int, float, float, float, float);
 extern void setPlayerPosition(int, float, float, float, float);
 extern void hidePlayer(int);
 extern void showPlayer(int);
 
-    /* 2D drawing functions */
+/* 2D drawing functions */
 extern void  draw2Dline(int, int, int, int, int);
 extern void  draw2Dbox(int, int, int, int);
 extern void  draw2Dtriangle(int, int, int, int, int, int);
-extern void  set2Dcolour(float []);
+extern void  set2Dcolour(float[]);
 extern void  draw2Dpoint(int x, int y, int pointSize, int smooth);
 
 
-    /* flag which is set to 1 when flying behaviour is desired */
+/* flag which is set to 1 when flying behaviour is desired */
 extern int flycontrol;
-    /* flag used to indicate that the test world should be used */
+/* flag used to indicate that the test world should be used */
 extern int testWorld;
-    /* flag to print out frames per second */
+/* flag to print out frames per second */
 extern int fps;
-    /* flag to indicate the space bar has been pressed */
+/* flag to indicate the space bar has been pressed */
 extern int space;
-    /* flag indicates the program is a client when set = 1 */
+/* flag indicates the program is a client when set = 1 */
 extern int netClient;
-    /* flag indicates the program is a server when set = 1 */
+/* flag indicates the program is a server when set = 1 */
 extern int netServer;
-    /* size of the window in pixels */
+/* size of the window in pixels */
 extern int screenWidth, screenHeight;
-    /* flag indicates if map is to be printed */
+/* flag indicates if map is to be printed */
 extern int displayMap;
-    /* flag indicates use of a fixed viewpoint */
+/* flag indicates use of a fixed viewpoint */
 extern int fixedVP;
 
-    /* frustum corner coordinates, used for visibility determination  */
+/* frustum corner coordinates, used for visibility determination  */
 extern float corners[4][3];
 
-    /* determine which cubes are visible e.g. in view frustum */
+/* determine which cubes are visible e.g. in view frustum */
 extern void ExtractFrustum();
 extern void tree(float, float, float, float, float, float, int);
 
-    /* allows users to define colours */
+/* allows users to define colours */
 extern int setUserColour(int, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
     GLfloat, GLfloat, GLfloat);
 void unsetUserColour(int);
@@ -110,7 +110,7 @@ void collisionResponse() {
     //for use when checking the contents of the world array
     int posX, posY, posZ; //floored integers of next positions
     int currXi, currYi, currZi; //floored integers of current positions
-
+    float collBuff = 1.5;
     posX = (int)floor(nextX);
     posY = (int)floor(nextY);
     posZ = (int)floor(nextZ);
@@ -118,7 +118,7 @@ void collisionResponse() {
     currYi = (int)floor(currY);
     currZi = (int)floor(currZ);
 
-    
+
 
     //detects out of bounds
     if (nextX < 0 || nextY < 0 || nextZ < 0 || nextX > 100 || nextY > 50 || nextZ > 100) {
@@ -127,7 +127,7 @@ void collisionResponse() {
 
     //detects collision
     //holy shit this actually works. Probably hacky. Tweak the added values to pos* to expand the hit box
-    if (world[posX][posY][posZ] != 0 && (nextX < posX + 1.2 || nextY < posY + 1.2 || nextZ < posZ + 1.2)) {
+    if (world[posX][posY][posZ] != 0 && (nextX < posX + collBuff || nextY < posY + collBuff || nextZ < posZ + collBuff)) {
         setViewPosition(currX, currY, currZ);
 
         /* attempt to allow the user to 'slide off of collisions. Needs work.
@@ -142,188 +142,215 @@ void collisionResponse() {
 }
 
 
-    /******* draw2D() *******/
-    /* draws 2D shapes on screen */
-    /* use the following functions:             */
-    /*  draw2Dline(int, int, int, int, int);        */
-    /*  draw2Dbox(int x1, int y1, int x2, int y2);          */
-    /*  draw2Dtriangle(int, int, int, int, int, int);   */
-    /*  set2Dcolour(float []);              */
-    /* colour must be set before other functions are called */
+/******* draw2D() *******/
+/* draws 2D shapes on screen */
+/* use the following functions:             */
+/*  draw2Dline(int, int, int, int, int);        */
+/*  draw2Dbox(int x1, int y1, int x2, int y2);          */
+/*  draw2Dtriangle(int, int, int, int, int, int);   */
+/*  set2Dcolour(float []);              */
+/* colour must be set before other functions are called */
 void draw2D() {
 
-   if (testWorld) {
+    if (testWorld) {
         /* draw some sample 2d shapes */
-      if (displayMap == 1) {
-         GLfloat green[] = {0.0, 0.5, 0.0, 0.5};
-         set2Dcolour(green);
-         draw2Dline(0, 0, 500, 500, 15);
-         draw2Dtriangle(0, 0, 200, 200, 0, 200);
+        if (displayMap == 1) {
+            GLfloat green[] = { 0.0, 0.5, 0.0, 0.5 };
+            set2Dcolour(green);
+            draw2Dline(0, 0, 500, 500, 15);
+            draw2Dtriangle(0, 0, 200, 200, 0, 200);
 
-         GLfloat black[] = {0.0, 0.0, 0.0, 0.5};
-         set2Dcolour(black);
-         draw2Dbox(500, 380, 524, 388);
-      }
-   }
-   else {
-      /* int x, y, z;
-
-       GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
-       GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
-       GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
-       GLfloat yellow[] = { 1.0, 1.0, 0.0, 1.0 };
-       GLfloat purple[] = { 1.0, 0.0, 1.0, 1.0 };
-       GLfloat orange[] = { 1.0, 0.64, 0.0, 1.0 };
-       GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
-       GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
-       GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
-//       set2Dcolour(grey);
-//       draw2Dbox(0, 0, 100, 100);
-
-       const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black"};
-       for (x = 0; x < WORLDX - 1; x++) {
-           for (z = 0; z < WORLDZ - 1; z++) {
-               y = WORLDY - 1;
-               while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
-               if (world[x][y][z] != 0) {
-                   set2Dcolour(colours[world[x][y][z] - 1]); //subtract 1 to account for the empty value in world array
-                   draw2Dpoint(x, z, 1, 1);
-               }
-           }
-       } */
-   }
+            GLfloat black[] = { 0.0, 0.0, 0.0, 0.5 };
+            set2Dcolour(black);
+            draw2Dbox(500, 380, 524, 388);
+        }
+    }
+    else {
+        int x, y, z;
+        int colour;
+        GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
+        GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
+        GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
+        GLfloat yellow[] = { 1.0, 1.0, 0.0, 1.0 };
+        GLfloat purple[] = { 1.0, 0.0, 1.0, 1.0 };
+        GLfloat orange[] = { 1.0, 0.64, 0.0, 1.0 };
+        GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
+        GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
+        GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
+        set2Dcolour(grey);
+        draw2Dbox(0, 0, 100, 100);
+        glDisable(GL_DEPTH_TEST);
+        const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black" };
+        for (x = 0; x < WORLDX - 1; x++) {
+            for (z = 0; z < WORLDZ - 1; z++) {
+                y = WORLDY - 1;
+                while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
+                if (world[x][y][z] != 0) {
+                    colour = world[x][y][z];
+                    if (colour == 1) {
+                        set2Dcolour(green);
+                    }
+                    else if (colour == 2) {
+                        set2Dcolour(blue);
+                    }
+                    else if (colour == 3) {
+                        set2Dcolour(red);
+                    }
+                    else if (colour == 4) {
+                        set2Dcolour(black);
+                    }
+                    else if (colour == 5) {
+                        set2Dcolour(white);
+                    }
+                    else if (colour == 6) {
+                        set2Dcolour(purple);
+                    }
+                    else if (colour == 7) {
+                        set2Dcolour(orange);
+                    }
+                    else if (colour == 8) {
+                        set2Dcolour(yellow);
+                    }
+                    draw2Dpoint(x, z, 1, 1);
+                }
+            }
+        }
+        glEnable(GL_DEPTH_TEST);
+    }
 }
 
 
-    /*** update() ***/
-    /* background process, it is called when there are no other events */
-    /* -used to control animations and perform calculations while the  */
-    /*  system is running */
-    /* -gravity must also implemented here, duplicate collisionResponse */
+/*** update() ***/
+/* background process, it is called when there are no other events */
+/* -used to control animations and perform calculations while the  */
+/*  system is running */
+/* -gravity must also implemented here, duplicate collisionResponse */
 void update() {
-int x, y, z;
-float *la;
+    int x, y, z;
+    float *la;
 
     /* sample animation for the test world, don't remove this code */
     /* demo of animating mobs */
-   if (testWorld) {
+    if (testWorld) {
 
-    /* sample of rotation and positioning of mob */
-    /* coordinates for mob 0 */
-      static float mob0x = 50.0, mob0y = 25.0, mob0z = 52.0;
-      static float mob0ry = 0.0;
-      static int increasingmob0 = 1;
-    /* coordinates for mob 1 */
-      static float mob1x = 50.0, mob1y = 25.0, mob1z = 52.0;
-      static float mob1ry = 0.0;
-      static int increasingmob1 = 1;
-    /* counter for user defined colour changes */
-      static int colourCount = 0;
-      static GLfloat offset = 0.0;
+        /* sample of rotation and positioning of mob */
+        /* coordinates for mob 0 */
+        static float mob0x = 50.0, mob0y = 25.0, mob0z = 52.0;
+        static float mob0ry = 0.0;
+        static int increasingmob0 = 1;
+        /* coordinates for mob 1 */
+        static float mob1x = 50.0, mob1y = 25.0, mob1z = 52.0;
+        static float mob1ry = 0.0;
+        static int increasingmob1 = 1;
+        /* counter for user defined colour changes */
+        static int colourCount = 0;
+        static GLfloat offset = 0.0;
 
-    /* move mob 0 and rotate */
-    /* set mob 0 position */
-      setMobPosition(0, mob0x, mob0y, mob0z, mob0ry);
+        /* move mob 0 and rotate */
+        /* set mob 0 position */
+        setMobPosition(0, mob0x, mob0y, mob0z, mob0ry);
 
-    /* move mob 0 in the x axis */
-      if (increasingmob0 == 1)
-         mob0x += 0.2;
-      else
-         mob0x -= 0.2;
-      if (mob0x > 50) increasingmob0 = 0;
-      if (mob0x < 30) increasingmob0 = 1;
+        /* move mob 0 in the x axis */
+        if (increasingmob0 == 1)
+            mob0x += 0.2;
+        else
+            mob0x -= 0.2;
+        if (mob0x > 50) increasingmob0 = 0;
+        if (mob0x < 30) increasingmob0 = 1;
 
-    /* rotate mob 0 around the y axis */
-      mob0ry += 1.0;
-      if (mob0ry > 360.0) mob0ry -= 360.0;
+        /* rotate mob 0 around the y axis */
+        mob0ry += 1.0;
+        if (mob0ry > 360.0) mob0ry -= 360.0;
 
-    /* move mob 1 and rotate */
-      setMobPosition(1, mob1x, mob1y, mob1z, mob1ry);
+        /* move mob 1 and rotate */
+        setMobPosition(1, mob1x, mob1y, mob1z, mob1ry);
 
-    /* move mob 1 in the z axis */
-    /* when mob is moving away it is visible, when moving back it */
-    /* is hidden */
-      if (increasingmob1 == 1) {
-         mob1z += 0.2;
-         showMob(1);
-      } else {
-         mob1z -= 0.2;
-         hideMob(1);
-      }
-      if (mob1z > 72) increasingmob1 = 0;
-      if (mob1z < 52) increasingmob1 = 1;
+        /* move mob 1 in the z axis */
+        /* when mob is moving away it is visible, when moving back it */
+        /* is hidden */
+        if (increasingmob1 == 1) {
+            mob1z += 0.2;
+            showMob(1);
+        }
+        else {
+            mob1z -= 0.2;
+            hideMob(1);
+        }
+        if (mob1z > 72) increasingmob1 = 0;
+        if (mob1z < 52) increasingmob1 = 1;
 
-    /* rotate mob 1 around the y axis */
-      mob1ry += 1.0;
-      if (mob1ry > 360.0) mob1ry -= 360.0;
+        /* rotate mob 1 around the y axis */
+        mob1ry += 1.0;
+        if (mob1ry > 360.0) mob1ry -= 360.0;
 
-    /* change user defined colour over time */
-      if (colourCount == 1) offset += 0.05;
-      else offset -= 0.01;
-      if (offset >= 0.5) colourCount = 0;
-      if (offset <= 0.0) colourCount = 1;
-      setUserColour(9, 0.7, 0.3 + offset, 0.7, 1.0, 0.3, 0.15 + offset, 0.3, 1.0);
+        /* change user defined colour over time */
+        if (colourCount == 1) offset += 0.05;
+        else offset -= 0.01;
+        if (offset >= 0.5) colourCount = 0;
+        if (offset <= 0.0) colourCount = 1;
+        setUserColour(9, 0.7, 0.3 + offset, 0.7, 1.0, 0.3, 0.15 + offset, 0.3, 1.0);
 
-    /* end testworld animation */
+        /* end testworld animation */
 
 
-   } else {
-      /* if (readGroundFile() == 1) {
-           //init the world array
-           for (x = 0; x < 100; x++) {
-               for (y = 0; y < 50; y++) {
-                   for (z = 0; z < 100; z++) {
-                       world[x][y][z] = 0;
-                   }
-               }
-           }
-           //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
-           for (x = 0; x < WORLDX - 1; x++) {
-               for (y = 2; y < WORLDY - 1; y++) {
-                   world[x][y][0] = (x % 6) + 1;
-                   world[x][y][WORLDZ - 1] = (x % 6) + 1;
-                   for (z = 0; z < WORLDZ - 1; z++) {
-                       world[x][2][z] = 8;
-                   }
-               }
-           }
+    }
+    else {
+        if (readGroundFile() == 1) {
+            //init the world array
+            for (x = 0; x < 100; x++) {
+                for (y = 0; y < 50; y++) {
+                    for (z = 0; z < 100; z++) {
+                        world[x][y][z] = 0;
+                    }
+                }
+            }
+            //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
+            for (x = 0; x < WORLDX - 1; x++) {
+                for (y = 2; y < WORLDY - 1; y++) {
+                    world[x][y][0] = (x % 6) + 1;
+                    world[x][y][WORLDZ - 1] = (x % 6) + 1;
+                    for (z = 0; z < WORLDZ - 1; z++) {
+                        world[x][2][z] = 8;
+                    }
+                }
+            }
 
-           //blocks for testing purposes
-           world[10][3][10] = 7;
-           world[10][4][10] = 7;
-       } */
-   }
+            //blocks for testing purposes
+            world[10][3][10] = 7;
+            world[10][4][10] = 7;
+        }
+    }
 }
 
 
-    /* called by GLUT when a mouse button is pressed or released */
-    /* -button indicates which button was pressed or released */
-    /* -state indicates a button down or button up event */
-    /* -x,y are the screen coordinates when the mouse is pressed or */
-    /*  released */
+/* called by GLUT when a mouse button is pressed or released */
+/* -button indicates which button was pressed or released */
+/* -state indicates a button down or button up event */
+/* -x,y are the screen coordinates when the mouse is pressed or */
+/*  released */
 void mouse(int button, int state, int x, int y) {
 
-   if (button == GLUT_LEFT_BUTTON)
-      printf("left button - ");
-   else if (button == GLUT_MIDDLE_BUTTON)
-      printf("middle button - ");
-   else
-      printf("right button - ");
+    if (button == GLUT_LEFT_BUTTON)
+        printf("left button - ");
+    else if (button == GLUT_MIDDLE_BUTTON)
+        printf("middle button - ");
+    else
+        printf("right button - ");
 
-   if (state == GLUT_UP)
-      printf("up - ");
-   else
-      printf("down - ");
+    if (state == GLUT_UP)
+        printf("up - ");
+    else
+        printf("down - ");
 
-   printf("%d %d\n", x, y);
+    printf("%d %d\n", x, y);
 }
 
 int readGroundFile() {
     FILE *fp;
     fp = fopen("ground.pgm", "r");
-    
+
     if (fp == NULL) {
-        fprintf(stderr,"Unable to open ground file. Running default terrain.\n");
+        fprintf(stderr, "Unable to open ground file. Running default terrain.\n");
         return 1;
     }
 
@@ -348,15 +375,47 @@ int readGroundFile() {
     fscanf(fp, "%d", &row);
     fscanf(fp, "%d", &col);
     fscanf(fp, "%d", &maxH);
-    printf("%d", maxH);
     for (x = 0; x < row - 1; x++) {
         for (z = col - 1; z >= 0; z--) {
             fscanf(fp, "%d", &y);
-            world[x][y / 6][z] = 8;
+            world[x][y / 6][z] = (y % 6) + 1;
         }
     }
     fclose(fp);
     return 0;
+}
+
+void fillGaps() {
+    int x, y, z;
+    int tmpX, tmpY, tmpZ;
+    for (x = 0; x < WORLDX - 1; x++) {
+        for (y = WORLDY - 1; y > 0; y++) {
+            for (z = 0; z < WORLDZ - 1; z++) {
+                if (world[x][y][z] != 0) { //found a block
+                    tmpX = x;
+                    tmpY = y - 1;
+                    tmpZ = z;
+                    while (tmpY < 1) {
+                        if (world[x][y - 1][z] == 0) { //space below is empty
+                            if (world[tmpX + 1][tmpY][tmpZ] == 1) { //found a block below and to the right
+                                world[tmpX + 1][tmpY][tmpZ] = world[x][y][z];
+                            }
+                            else if (world[tmpX - 1][tmpY][tmpZ] == 1) { //below and left
+                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
+                            }
+                            else if (world[tmpX][tmpY][tmpZ + 1] == 1) { //below and forward
+                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
+                            }
+                            else if (world[tmpX][tmpY][tmpZ - 1] == 1) { //belopw and back
+                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
+                            }
+                        }
+                        tmpY--;
+                    }
+                }
+            }
+        }
+    }
 }
 
 int main(int argc, char** argv)
@@ -442,7 +501,7 @@ int main(int argc, char** argv)
                 for (y = 0; y < WORLDY - 1; y++) {
                     for (z = 0; z < WORLDZ - 1; z++) {
                         if (world[x][y][z] != 0) {
-                            
+
                         }
                     }
                 }
@@ -451,7 +510,7 @@ int main(int argc, char** argv)
     }
     /* starts the graphics processing loop */
     /* code after this will not run until the program exits */
-   glutMainLoop();
-   return 0;
+    glutMainLoop();
+    return 0;
 }
 
