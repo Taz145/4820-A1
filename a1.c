@@ -166,7 +166,31 @@ void draw2D() {
       }
    }
    else {
+      /* int x, y, z;
 
+       GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
+       GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
+       GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
+       GLfloat yellow[] = { 1.0, 1.0, 0.0, 1.0 };
+       GLfloat purple[] = { 1.0, 0.0, 1.0, 1.0 };
+       GLfloat orange[] = { 1.0, 0.64, 0.0, 1.0 };
+       GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
+       GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
+       GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
+//       set2Dcolour(grey);
+//       draw2Dbox(0, 0, 100, 100);
+
+       const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black"};
+       for (x = 0; x < WORLDX - 1; x++) {
+           for (z = 0; z < WORLDZ - 1; z++) {
+               y = WORLDY - 1;
+               while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
+               if (world[x][y][z] != 0) {
+                   set2Dcolour(colours[world[x][y][z] - 1]); //subtract 1 to account for the empty value in world array
+                   draw2Dpoint(x, z, 1, 1);
+               }
+           }
+       } */
    }
 }
 
@@ -244,29 +268,30 @@ float *la;
 
 
    } else {
-
-       //init the world array
-       for (x = 0; x < 100; x++) {
-           for (y = 0; y < 50; y++) {
-               for (z = 0; z < 100; z++) {
-                   world[x][y][z] = 0;
+      /* if (readGroundFile() == 1) {
+           //init the world array
+           for (x = 0; x < 100; x++) {
+               for (y = 0; y < 50; y++) {
+                   for (z = 0; z < 100; z++) {
+                       world[x][y][z] = 0;
+                   }
                }
            }
-       }
-       //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
-       for (x = 0; x < WORLDX -1; x++) {
-           for (y = 2; y < WORLDY - 1; y++) {
-               world[x][y][0] = (x % 6) + 1;
-               world[x][y][WORLDZ - 1] = (x % 6) + 1;
-               for (z = 0; z < WORLDZ - 1; z++) {
-                   world[x][2][z] = 8;
+           //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
+           for (x = 0; x < WORLDX - 1; x++) {
+               for (y = 2; y < WORLDY - 1; y++) {
+                   world[x][y][0] = (x % 6) + 1;
+                   world[x][y][WORLDZ - 1] = (x % 6) + 1;
+                   for (z = 0; z < WORLDZ - 1; z++) {
+                       world[x][2][z] = 8;
+                   }
                }
            }
-       }
 
-       //blocks for testing purposes
-       world[10][3][10] = 7;
-       world[10][4][10] = 7;
+           //blocks for testing purposes
+           world[10][3][10] = 7;
+           world[10][4][10] = 7;
+       } */
    }
 }
 
@@ -293,13 +318,52 @@ void mouse(int button, int state, int x, int y) {
    printf("%d %d\n", x, y);
 }
 
+int readGroundFile() {
+    FILE *fp;
+    fp = fopen("ground.pgm", "r");
+    
+    if (fp == NULL) {
+        fprintf(stderr,"Unable to open ground file. Running default terrain.\n");
+        return 1;
+    }
 
+    char c;
+    int x, y, z, row, col, maxH;
+
+    c = getc(fp);
+    if (c != 'P') {
+        fprintf(stderr, "Not a valid pgm file\n");
+        return 1;
+    }
+    c = getc(fp);
+    if (c != '2') {
+        fprintf(stderr, "Not a valid pgm file\n");
+        return 1;
+    }
+
+    while (getc(fp) != '\n'); //goes to EOL
+    while (getc(fp) == '#'); //skip comments
+    while (getc(fp) != '\n'); //goes to EOL following comments
+
+    fscanf(fp, "%d", &row);
+    fscanf(fp, "%d", &col);
+    fscanf(fp, "%d", &maxH);
+    printf("%d", maxH);
+    for (x = 0; x < row - 1; x++) {
+        for (z = col - 1; z >= 0; z--) {
+            fscanf(fp, "%d", &y);
+            world[x][y / 6][z] = 8;
+        }
+    }
+    fclose(fp);
+    return 0;
+}
 
 int main(int argc, char** argv)
 {
-int i, j, k;
+    int i, j, k;
     /* initialize the graphics system */
-   graphicsInit(&argc, argv);
+    graphicsInit(&argc, argv);
 
     /* the first part of this if statement builds a sample */
     /* world which will be used for testing */
@@ -307,56 +371,84 @@ int i, j, k;
     /* Put your code in the else statment below */
     /* The testworld is only guaranteed to work with a world of
         with dimensions of 100,50,100. */
-   if (testWorld == 1) {
-    /* initialize world to empty */
-      for(i=0; i<WORLDX; i++)
-         for(j=0; j<WORLDY; j++)
-            for(k=0; k<WORLDZ; k++)
-               world[i][j][k] = 0;
+    if (testWorld == 1) {
+        /* initialize world to empty */
+        for (i = 0; i < WORLDX; i++)
+            for (j = 0; j < WORLDY; j++)
+                for (k = 0; k < WORLDZ; k++)
+                    world[i][j][k] = 0;
 
-    /* some sample objects */
-    /* build a red platform */
-      for(i=0; i<WORLDX; i++) {
-         for(j=0; j<WORLDZ; j++) {
-            world[i][24][j] = 3;
-         }
-      }
-    /* create some green and blue cubes */
-      world[50][25][50] = 1;
-      world[49][25][50] = 1;
-      world[49][26][50] = 1;
-      world[52][25][52] = 2;
-      world[52][26][52] = 2;
+        /* some sample objects */
+        /* build a red platform */
+        for (i = 0; i < WORLDX; i++) {
+            for (j = 0; j < WORLDZ; j++) {
+                world[i][24][j] = 3;
+            }
+        }
+        /* create some green and blue cubes */
+        world[50][25][50] = 1;
+        world[49][25][50] = 1;
+        world[49][26][50] = 1;
+        world[52][25][52] = 2;
+        world[52][26][52] = 2;
 
-    /* create user defined colour and draw cube */
-      setUserColour(9, 0.7, 0.3, 0.7, 1.0, 0.3, 0.15, 0.3, 1.0);
-      world[54][25][50] = 9;
-
-
-    /* blue box shows xy bounds of the world */
-      for(i=0; i<WORLDX-1; i++) {
-         world[i][25][0] = 2;
-         world[i][25][WORLDZ-1] = 2;
-      }
-      for(i=0; i<WORLDZ-1; i++) {
-         world[0][25][i] = 2;
-         world[WORLDX-1][25][i] = 2;
-      }
-
-    /* create two sample mobs */
-    /* these are animated in the update() function */
-      createMob(0, 50.0, 25.0, 52.0, 0.0);
-      createMob(1, 50.0, 25.0, 52.0, 0.0);
-
-    /* create sample player */
-      createPlayer(0, 52.0, 27.0, 52.0, 0.0);
-   } else {
-
-    /* your code to build the world goes here */
-
-   }
+        /* create user defined colour and draw cube */
+        setUserColour(9, 0.7, 0.3, 0.7, 1.0, 0.3, 0.15, 0.3, 1.0);
+        world[54][25][50] = 9;
 
 
+        /* blue box shows xy bounds of the world */
+        for (i = 0; i < WORLDX - 1; i++) {
+            world[i][25][0] = 2;
+            world[i][25][WORLDZ - 1] = 2;
+        }
+        for (i = 0; i < WORLDZ - 1; i++) {
+            world[0][25][i] = 2;
+            world[WORLDX - 1][25][i] = 2;
+        }
+
+        /* create two sample mobs */
+        /* these are animated in the update() function */
+        createMob(0, 50.0, 25.0, 52.0, 0.0);
+        createMob(1, 50.0, 25.0, 52.0, 0.0);
+
+        /* create sample player */
+        createPlayer(0, 52.0, 27.0, 52.0, 0.0);
+    }
+    else {
+        int x, y, z;
+        if (readGroundFile() == 1) { //no valid world file. Make default world
+            //init the world array
+            for (x = 0; x < 100; x++) {
+                for (y = 0; y < 50; y++) {
+                    for (z = 0; z < 100; z++) {
+                        world[x][y][z] = 0;
+                    }
+                }
+            }
+            //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
+            for (x = 0; x < WORLDX - 1; x++) {
+                for (y = 2; y < WORLDY - 1; y++) {
+                    world[x][y][0] = (x % 6) + 1;
+                    world[x][y][WORLDZ - 1] = (x % 6) + 1;
+                    for (z = 0; z < WORLDZ - 1; z++) {
+                        world[x][2][z] = 8;
+                    }
+                }
+            }
+        }
+        else { //fill in the gaps
+            for (x = 0; x < WORLDX - 1; x++) {
+                for (y = 0; y < WORLDY - 1; y++) {
+                    for (z = 0; z < WORLDZ - 1; z++) {
+                        if (world[x][y][z] != 0) {
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
     /* starts the graphics processing loop */
     /* code after this will not run until the program exits */
    glutMainLoop();
