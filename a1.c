@@ -378,39 +378,60 @@ int readGroundFile() {
     for (x = 0; x < row - 1; x++) {
         for (z = col - 1; z >= 0; z--) {
             fscanf(fp, "%d", &y);
-            world[x][y / 6][z] = (y % 6) + 1;
+            world[x][(int)floor(y / 5.1)][z] = (y % 7) + 1; //scales 255 to exactly 50.
         }
     }
     fclose(fp);
     return 0;
 }
-
+//kinda works?
 void fillGaps() {
     int x, y, z;
-    int tmpX, tmpY, tmpZ;
     for (x = 0; x < WORLDX - 1; x++) {
-        for (y = WORLDY - 1; y > 0; y++) {
-            for (z = 0; z < WORLDZ - 1; z++) {
-                if (world[x][y][z] != 0) { //found a block
-                    tmpX = x;
-                    tmpY = y - 1;
-                    tmpZ = z;
-                    while (tmpY < 1) {
-                        if (world[x][y - 1][z] == 0) { //space below is empty
-                            if (world[tmpX + 1][tmpY][tmpZ] == 1) { //found a block below and to the right
-                                world[tmpX + 1][tmpY][tmpZ] = world[x][y][z];
-                            }
-                            else if (world[tmpX - 1][tmpY][tmpZ] == 1) { //below and left
-                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
-                            }
-                            else if (world[tmpX][tmpY][tmpZ + 1] == 1) { //below and forward
-                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
-                            }
-                            else if (world[tmpX][tmpY][tmpZ - 1] == 1) { //belopw and back
-                                world[tmpX - 1][tmpY][tmpZ] = world[x][y][z];
-                            }
-                        }
-                        tmpY--;
+        for (z = 0; z < WORLDZ - 1; z++) {
+            for (y = WORLDY - 1; y > 0; y--) {
+                if (world[x][y][z] != 0 && world[x][y - 1][z] == 0) { //found a block and there is empty space below it
+                    if (x == 0 && z == 0) { //bottom left corner
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (x == 0 && z == WORLDZ - 1) { //top left
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z - 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (x == WORLDX - 1 && z == 0) { //bottom right
+                        if (world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (x == WORLDX - 1 && z == WORLDZ - 1) { //top right
+                        if (world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z - 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (x == 0) { //left edge
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1 ||
+                            world[x][y - 1][z + 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (x == WORLDX - 1) { //right edge
+                        if (world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1 ||
+                            world[x][y - 1][z - 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (z == 0) { //bottom edge
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else if (z == WORLDZ - 1) { //top edge
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z - 1] != 1) world[x][y - 1][z] = world[x][y][z];
+                    }
+                    else { //general case
+                        if (world[x + 1][y - 1][z] != 1 ||
+                            world[x - 1][y - 1][z] != 1 ||
+                            world[x][y - 1][z + 1] != 1 ||
+                            world[x][y - 1][z - 1] != 1) world[x][y - 1][z] = world[x][y][z];
                     }
                 }
             }
@@ -497,15 +518,7 @@ int main(int argc, char** argv)
             }
         }
         else { //fill in the gaps
-            for (x = 0; x < WORLDX - 1; x++) {
-                for (y = 0; y < WORLDY - 1; y++) {
-                    for (z = 0; z < WORLDZ - 1; z++) {
-                        if (world[x][y][z] != 0) {
-
-                        }
-                    }
-                }
-            }
+            fillGaps();
         }
     }
     /* starts the graphics processing loop */
