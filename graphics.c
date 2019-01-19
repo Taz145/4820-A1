@@ -756,7 +756,6 @@ void motion(int x, int y) {
    /* update current mouse movement but don't use to change the viewpoint*/
    oldx = x;
    oldy = y;
-   glutWarpPointer(screenWidth / 2, screenHeight / 2); //lets you click to reset the mouse position to the middle of the screen
 }
 
 /* responds to mouse movement when a button is not pressed */
@@ -765,6 +764,7 @@ void passivemotion(int x, int y) {
    //mvy += (float) x - oldx;
    //oldx = x;
    //oldy = y;
+    //keeps the mouse in the middle of the screen. Easier movement and prevents the mouse from leaving the window bounds
    mvx += (float)y - screenHeight / 2;
    mvy += (float)x - screenWidth / 2;
    glutWarpPointer(screenWidth / 2, screenHeight / 2);

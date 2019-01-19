@@ -98,7 +98,7 @@ extern void getUserColour(int, GLfloat *, GLfloat *, GLfloat *, GLfloat *,
     /* note that the world coordinates returned from getViewPosition()
        will be the negative value of the array indices */
 void collisionResponse() {
-
+    int i;
     float nextX, nextY, nextZ;
     float currX, currY, currZ;
     getViewPosition(&nextX, &nextY, &nextZ);
@@ -108,12 +108,12 @@ void collisionResponse() {
     nextZ *= -1;
 
     //for use when checking the contents of the world array
-    int posX, posY, posZ; //floored integers of next positions
+    int nextXi, nextYi, nextZi; //floored integers of next positions
     int currXi, currYi, currZi; //floored integers of current positions
     float collBuff = 1.5;
-    posX = (int)floor(nextX);
-    posY = (int)floor(nextY);
-    posZ = (int)floor(nextZ);
+    nextXi = (int)floor(nextX);
+    nextYi = (int)floor(nextY);
+    nextZi = (int)floor(nextZ);
     currXi = (int)floor(currX);
     currYi = (int)floor(currY);
     currZi = (int)floor(currZ);
@@ -125,10 +125,24 @@ void collisionResponse() {
         setViewPosition(currX, currY, currZ);
     }
 
-    //detects collision
-    //holy shit this actually works. Probably hacky. Tweak the added values to pos* to expand the hit box
-    if (world[posX][posY][posZ] != 0 && (nextX < posX + collBuff || nextY < posY + collBuff || nextZ < posZ + collBuff)) {
-        setViewPosition(currX, currY, currZ);
+    if (world[nextXi][nextYi][nextZi] != 0) { //the place we are moving to is occupied
+        setViewPosition(currX, currY, currZ); //don't let us move
+    }
+    else if (abs(nextX - currX) > 1) { //we moved more than 1 space, we need to check if we passed through anything on the way
+        for (i = 0; i < abs(nextX - currX); i++) { //goes back and checks the value of each space we jumped through
+            if (world[currXi + i][currYi][currZi] != 0) setViewPosition(currX, currY, currZ); //if occupied, don't move.
+        }
+    }
+    else if (abs(nextY - currY) > 1) { //do this for each direction
+        for (i = 0; i < abs(nextY - currY); i++) {
+            if (world[currXi][currYi + i][currZi] != 0) setViewPosition(currX, currY, currZ);
+        }
+    }
+    else if (abs(nextZ - currZ) > 1) {
+        for (i = 0; i < abs(nextZ - currZ); i++) {
+            if (world[currXi][currYi][currZi + i] != 0) setViewPosition(currX, currY, currZ);
+        }
+    }
 
         /* attempt to allow the user to 'slide off of collisions. Needs work.
         if (world[posX][currYi][currZi] != 0 && nextX < posX + 1.2) setViewPosition(currX, nextY, nextZ);
@@ -166,6 +180,8 @@ void draw2D() {
         }
     }
     else {
+        //draws a 1:1 scale minimap of the world. Does not have functionality for user defined colours
+        /*
         int x, y, z;
         int colour;
         GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
@@ -216,6 +232,7 @@ void draw2D() {
             }
         }
         glEnable(GL_DEPTH_TEST);
+        */
     }
 }
 
@@ -295,30 +312,7 @@ void update() {
 
     }
     else {
-        if (readGroundFile() == 1) {
-            //init the world array
-            for (x = 0; x < 100; x++) {
-                for (y = 0; y < 50; y++) {
-                    for (z = 0; z < 100; z++) {
-                        world[x][y][z] = 0;
-                    }
-                }
-            }
-            //builds a 50x50 yellow platform at height zero and two multi coloured walls along the x-axis
-            for (x = 0; x < WORLDX - 1; x++) {
-                for (y = 2; y < WORLDY - 1; y++) {
-                    world[x][y][0] = (x % 6) + 1;
-                    world[x][y][WORLDZ - 1] = (x % 6) + 1;
-                    for (z = 0; z < WORLDZ - 1; z++) {
-                        world[x][2][z] = 8;
-                    }
-                }
-            }
-
-            //blocks for testing purposes
-            world[10][3][10] = 7;
-            world[10][4][10] = 7;
-        }
+        //idle animation stuff goes here I think
     }
 }
 
@@ -345,51 +339,12 @@ void mouse(int button, int state, int x, int y) {
     printf("%d %d\n", x, y);
 }
 
-int readGroundFile() {
-    FILE *fp;
-    fp = fopen("ground.pgm", "r");
-
-    if (fp == NULL) {
-        fprintf(stderr, "Unable to open ground file. Running default terrain.\n");
-        return 1;
-    }
-
-    char c;
-    int x, y, z, row, col, maxH;
-
-    c = getc(fp);
-    if (c != 'P') {
-        fprintf(stderr, "Not a valid pgm file\n");
-        return 1;
-    }
-    c = getc(fp);
-    if (c != '2') {
-        fprintf(stderr, "Not a valid pgm file\n");
-        return 1;
-    }
-
-    while (getc(fp) != '\n'); //goes to EOL
-    while (getc(fp) == '#'); //skip comments
-    while (getc(fp) != '\n'); //goes to EOL following comments
-
-    fscanf(fp, "%d", &row);
-    fscanf(fp, "%d", &col);
-    fscanf(fp, "%d", &maxH);
-    for (x = 0; x < row - 1; x++) {
-        for (z = col - 1; z >= 0; z--) {
-            fscanf(fp, "%d", &y);
-            world[x][(int)floor(y / 5.1)][z] = (y % 7) + 1; //scales 255 to exactly 50.
-        }
-    }
-    fclose(fp);
-    return 0;
-}
-//kinda works?
 void fillGaps() {
     int x, y, z;
     for (x = 0; x < WORLDX - 1; x++) {
         for (z = 0; z < WORLDZ - 1; z++) {
             for (y = WORLDY - 1; y > 0; y--) {
+
                 if (world[x][y][z] != 0 && world[x][y - 1][z] == 0) { //found a block and there is empty space below it
                     if (x == 0 && z == 0) { //bottom left corner
                         if (world[x + 1][y - 1][z] != 1 ||
@@ -437,6 +392,47 @@ void fillGaps() {
             }
         }
     }
+}
+
+int readGroundFile() {
+    FILE *fp;
+    fp = fopen("ground.pgm", "r");
+
+    if (fp == NULL) {
+        fprintf(stderr, "Unable to open ground file. Running default terrain.\n");
+        return 1;
+    }
+
+    char c;
+    int x, y, z, row, col, maxH;
+
+    c = getc(fp);
+    if (c != 'P') {
+        fprintf(stderr, "Not a valid pgm file\n");
+        return 1;
+    }
+    c = getc(fp);
+    if (c != '2') {
+        fprintf(stderr, "Not a valid pgm file\n");
+        return 1;
+    }
+
+    while (getc(fp) != '\n'); //goes to EOL
+    while (getc(fp) == '#'); //skip comments
+    while (getc(fp) != '\n'); //goes to EOL following comments
+
+    fscanf(fp, "%d", &row);
+    fscanf(fp, "%d", &col);
+    fscanf(fp, "%d", &maxH);
+    for (x = 0; x < row - 1; x++) {
+        for (z = col - 1; z >= 0; z--) {
+            fscanf(fp, "%d", &y);
+            world[x][(int)floor(y / 6.5)][z] = 3; //5.1 scales 255 to exactly 50.
+        }
+    }
+    fclose(fp);
+    fillGaps();
+    return 0;
 }
 
 int main(int argc, char** argv)
@@ -496,6 +492,9 @@ int main(int argc, char** argv)
         createPlayer(0, 52.0, 27.0, 52.0, 0.0);
     }
     else {
+        //TODO see about adding in code to change the curor to help the player stay right side up
+        //i.e cursor points up when upside down
+        glutSetCursor(GLUT_CURSOR_NONE);
         int x, y, z;
         if (readGroundFile() == 1) { //no valid world file. Make default world
             //init the world array
@@ -516,9 +515,6 @@ int main(int argc, char** argv)
                     }
                 }
             }
-        }
-        else { //fill in the gaps
-            fillGaps();
         }
     }
     /* starts the graphics processing loop */
