@@ -118,41 +118,29 @@ void collisionResponse() {
     currYi = (int)floor(currY);
     currZi = (int)floor(currZ);
 
-
-
     //detects out of bounds
     if (nextX < 0 || nextY < 0 || nextZ < 0 || nextX > 100 || nextY > 50 || nextZ > 100) {
         setViewPosition(currX, currY, currZ);
     }
 
-    if (world[nextXi][nextYi][nextZi] != 0) { //the place we are moving to is occupied
+    if (world[nextXi][nextYi][nextZi] != 0 &&(nextX < nextXi + 1.2 && nextY < nextYi + 1.2 && nextZ < nextZi + 1.2)) { //the place we are moving to is occupied
         setViewPosition(currX, currY, currZ); //don't let us move
     }
-    else if (abs(nextX - currX) > 1) { //we moved more than 1 space, we need to check if we passed through anything on the way
-        for (i = 0; i < abs(nextX - currX); i++) { //goes back and checks the value of each space we jumped through
-            if (world[currXi + i][currYi][currZi] != 0) setViewPosition(currX, currY, currZ); //if occupied, don't move.
-        }
-    }
-    else if (abs(nextY - currY) > 1) { //do this for each direction
-        for (i = 0; i < abs(nextY - currY); i++) {
-            if (world[currXi][currYi + i][currZi] != 0) setViewPosition(currX, currY, currZ);
-        }
-    }
-    else if (abs(nextZ - currZ) > 1) {
-        for (i = 0; i < abs(nextZ - currZ); i++) {
-            if (world[currXi][currYi][currZi + i] != 0) setViewPosition(currX, currY, currZ);
-        }
-    }
-
-        /* attempt to allow the user to 'slide off of collisions. Needs work.
-        if (world[posX][currYi][currZi] != 0 && nextX < posX + 1.2) setViewPosition(currX, nextY, nextZ);
-        if (world[currXi][posY][currZi] != 0 && nextY < posY + 1.2) setViewPosition(nextX, currY, nextZ);
-        if (world[currXi][currYi][posZ] != 0 && nextZ < posZ + 1.2) setViewPosition(nextX, nextY, currZ);
-        if (world[posX][posY][currZi] != 0 && (nextX < posX + 1.2 || nextY < posY + 1.2) setViewPosition(currX, currY, nextZ);
-        if (world[posX][currYi][posZ] != 0 && (nextX < posX + 1.2 || nextZ < posZ + 1.2) setViewPosition(currX, nextY, currZ);
-        if (world[currXi][posY][posZ] != 0 && (nextY < posY + 1.2 || nextZ < posZ + 1.2) set Viewposition(nextX, currY, currZ);
-        */
-    }
+    //else if (abs(nextX - currX) > 1) { //we moved more than 1 space, we need to check if we passed through anything on the way
+    //    for (i = 0; i < abs(nextX - currX); i++) { //goes back and checks the value of each space we jumped through
+    //        if (world[currXi + i][currYi][currZi] != 0) setViewPosition(currX, currY, currZ); //if occupied, don't move.
+    //    }
+    //}
+    //else if (abs(nextY - currY) > 1) { //do this for each direction
+    //    for (i = 0; i < abs(nextY - currY); i++) {
+    //        if (world[currXi][currYi + i][currZi] != 0) setViewPosition(currX, currY, currZ);
+    //    }
+    //}
+    //else if (abs(nextZ - currZ) > 1) {
+    //    for (i = 0; i < abs(nextZ - currZ); i++) {
+    //        if (world[currXi][currYi][currZi + i] != 0) setViewPosition(currX, currY, currZ);
+    //    }
+    //}
 }
 
 
@@ -268,10 +256,13 @@ void update() {
         setMobPosition(0, mob0x, mob0y, mob0z, mob0ry);
 
         /* move mob 0 in the x axis */
-        if (increasingmob0 == 1)
+        if (increasingmob0 == 1) {
             mob0x += 0.2;
+        }
         else
+        {
             mob0x -= 0.2;
+        }
         if (mob0x > 50) increasingmob0 = 0;
         if (mob0x < 30) increasingmob0 = 1;
 
@@ -427,7 +418,7 @@ int readGroundFile() {
     for (x = 0; x < row - 1; x++) {
         for (z = col - 1; z >= 0; z--) {
             fscanf(fp, "%d", &y);
-            world[x][(int)floor(y / 6.5)][z] = 3; //5.1 scales 255 to exactly 50.
+            world[x][(int)floor(y / 20)][z] = 3; //5.1 scales 255 to exactly 50.
         }
     }
     fclose(fp);
