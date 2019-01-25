@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #include "graphics.h"
 
@@ -74,6 +75,9 @@ extern int displayMap;
 /* flag indicates use of a fixed viewpoint */
 extern int fixedVP;
 
+//used for timing animation
+clock_t start, end;
+
 /* frustum corner coordinates, used for visibility determination  */
 extern float corners[4][3];
 
@@ -118,29 +122,17 @@ void collisionResponse() {
     currYi = (int)floor(currY);
     currZi = (int)floor(currZ);
 
+
     //detects out of bounds
     if (nextX < 0 || nextY < 0 || nextZ < 0 || nextX > 100 || nextY > 50 || nextZ > 100) {
         setViewPosition(currX, currY, currZ);
     }
 
-    if (world[nextXi][nextYi][nextZi] != 0 &&(nextX < nextXi + 1.2 && nextY < nextYi + 1.2 && nextZ < nextZi + 1.2)) { //the place we are moving to is occupied
+    //block collision
+    if (world[nextXi][nextYi][nextZi] != 0 &&
+        (nextX < nextXi + 1.2 && nextY < nextYi + 1.2 && nextZ < nextZi + 1.2)) {
         setViewPosition(currX, currY, currZ); //don't let us move
     }
-    //else if (abs(nextX - currX) > 1) { //we moved more than 1 space, we need to check if we passed through anything on the way
-    //    for (i = 0; i < abs(nextX - currX); i++) { //goes back and checks the value of each space we jumped through
-    //        if (world[currXi + i][currYi][currZi] != 0) setViewPosition(currX, currY, currZ); //if occupied, don't move.
-    //    }
-    //}
-    //else if (abs(nextY - currY) > 1) { //do this for each direction
-    //    for (i = 0; i < abs(nextY - currY); i++) {
-    //        if (world[currXi][currYi + i][currZi] != 0) setViewPosition(currX, currY, currZ);
-    //    }
-    //}
-    //else if (abs(nextZ - currZ) > 1) {
-    //    for (i = 0; i < abs(nextZ - currZ); i++) {
-    //        if (world[currXi][currYi][currZi + i] != 0) setViewPosition(currX, currY, currZ);
-    //    }
-    //}
 }
 
 
@@ -169,58 +161,58 @@ void draw2D() {
     }
     else {
         //draws a 1:1 scale minimap of the world. Does not have functionality for user defined colours
-        /*
-        int x, y, z;
-        int colour;
-        GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
-        GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
-        GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
-        GLfloat yellow[] = { 1.0, 1.0, 0.0, 1.0 };
-        GLfloat purple[] = { 1.0, 0.0, 1.0, 1.0 };
-        GLfloat orange[] = { 1.0, 0.64, 0.0, 1.0 };
-        GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
-        GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
-        GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
-        set2Dcolour(grey);
-        draw2Dbox(0, 0, 100, 100);
-        glDisable(GL_DEPTH_TEST);
-        const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black" };
-        for (x = 0; x < WORLDX - 1; x++) {
-            for (z = 0; z < WORLDZ - 1; z++) {
-                y = WORLDY - 1;
-                while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
-                if (world[x][y][z] != 0) {
-                    colour = world[x][y][z];
-                    if (colour == 1) {
-                        set2Dcolour(green);
+        if (displayMap == 1) {
+            int x, y, z;
+            int colour;
+            GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
+            GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
+            GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
+            GLfloat yellow[] = { 1.0, 1.0, 0.0, 1.0 };
+            GLfloat purple[] = { 1.0, 0.0, 1.0, 1.0 };
+            GLfloat orange[] = { 1.0, 0.64, 0.0, 1.0 };
+            GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
+            GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
+            GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
+            set2Dcolour(grey);
+            draw2Dbox(0, 0, 100, 100);
+            glDisable(GL_DEPTH_TEST);
+            const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black" };
+            for (x = 0; x < WORLDX - 1; x++) {
+                for (z = 0; z < WORLDZ - 1; z++) {
+                    y = WORLDY - 1;
+                    while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
+                    if (world[x][y][z] != 0) {
+                        colour = world[x][y][z];
+                        if (colour == 1) {
+                            set2Dcolour(green);
+                        }
+                        else if (colour == 2) {
+                            set2Dcolour(blue);
+                        }
+                        else if (colour == 3) {
+                            set2Dcolour(red);
+                        }
+                        else if (colour == 4) {
+                            set2Dcolour(black);
+                        }
+                        else if (colour == 5) {
+                            set2Dcolour(white);
+                        }
+                        else if (colour == 6) {
+                            set2Dcolour(purple);
+                        }
+                        else if (colour == 7) {
+                            set2Dcolour(orange);
+                        }
+                        else if (colour == 8) {
+                            set2Dcolour(yellow);
+                        }
+                        draw2Dpoint(x, z, 1, 1);
                     }
-                    else if (colour == 2) {
-                        set2Dcolour(blue);
-                    }
-                    else if (colour == 3) {
-                        set2Dcolour(red);
-                    }
-                    else if (colour == 4) {
-                        set2Dcolour(black);
-                    }
-                    else if (colour == 5) {
-                        set2Dcolour(white);
-                    }
-                    else if (colour == 6) {
-                        set2Dcolour(purple);
-                    }
-                    else if (colour == 7) {
-                        set2Dcolour(orange);
-                    }
-                    else if (colour == 8) {
-                        set2Dcolour(yellow);
-                    }
-                    draw2Dpoint(x, z, 1, 1);
                 }
             }
+            glEnable(GL_DEPTH_TEST);
         }
-        glEnable(GL_DEPTH_TEST);
-        */
     }
 }
 
@@ -303,7 +295,17 @@ void update() {
 
     }
     else {
-        //idle animation stuff goes here I think
+        double time_elapsed;
+        end = clock();
+        time_elapsed = ((double)end - start) / CLOCKS_PER_SEC;
+
+        //do stuff based on how much time has passed here
+
+        float x, y, z;
+        getOldViewPosition(&x, &y, &z);
+        y += time_elapsed * (-9.8);
+
+
     }
 }
 
@@ -418,7 +420,7 @@ int readGroundFile() {
     for (x = 0; x < row - 1; x++) {
         for (z = col - 1; z >= 0; z--) {
             fscanf(fp, "%d", &y);
-            world[x][(int)floor(y / 20)][z] = 3; //5.1 scales 255 to exactly 50.
+            world[x][(int)floor(y / 9)][z] = 3; //5.1 scales 255 to exactly 50.
         }
     }
     fclose(fp);
@@ -510,6 +512,7 @@ int main(int argc, char** argv)
     }
     /* starts the graphics processing loop */
     /* code after this will not run until the program exits */
+    start = clock();
     glutMainLoop();
     return 0;
 }
