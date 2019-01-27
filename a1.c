@@ -29,6 +29,7 @@ extern GLfloat* getLightPosition();
 /* viewpoint control */
 extern void setViewPosition(float, float, float);
 extern void getViewPosition(float *, float *, float *);
+extern void setOldViewPosition(float, float, float);
 extern void getOldViewPosition(float *, float *, float *);
 extern void setViewOrientation(float, float, float);
 extern void getViewOrientation(float *, float *, float *);
@@ -76,7 +77,13 @@ extern int displayMap;
 extern int fixedVP;
 
 //used for timing animation
-clock_t start, end;
+clock_t gravityTimer, momentumTimer, end;
+
+double decelMod = 0.9;
+float lastX, lastY, lastZ;
+
+int numHumans = 0; //used for error checking and indexing of the below array
+Human humans[MAX_HUMANS];
 
 /* frustum corner coordinates, used for visibility determination  */
 extern float corners[4][3];
@@ -94,15 +101,65 @@ extern void getUserColour(int, GLfloat *, GLfloat *, GLfloat *, GLfloat *,
 
 /********* end of extern variable declarations **************/
 
+//x, y, z are the values that the human is moving in that direction. These are added to the humans current coords.
+//They can be negative to allow movement in all directions
+//Also can be used to draw humans for the first time by "moving" them to their current position
+void moveHuman(int x, int y, int z, int index) {
+    if (index >= numHumans || index < 0 || index > MAX_HUMANS) {
+        printf("Invalid index for humans\n");
+    }
+    int newX, newY, newZ;
+    newX = x + humans[index].x;
+    newY = y + humans[index].y;
+    newZ = z + humans[index].z;
 
-    /*** collisionResponse() ***/
-    /* -performs collision detection and response */
-    /*  sets new xyz  to position of the viewpoint after collision */
-    /* -can also be used to implement gravity by updating y position of vp*/
-    /* note that the world coordinates returned from getViewPosition()
-       will be the negative value of the array indices */
+    //remove the blocks from where the person was
+    world[humans[index].x][humans[index].y][humans[index].z] = 0;
+    world[humans[index].x][humans[index].y - 1][humans[index].z] = 0;
+    world[humans[index].x][humans[index].y - 2][humans[index].z] = 0;
+
+    //checks if there is space for the torso and legs and if there are any other blocks in those spaces
+    if (world[newX][newY][newZ] != 0 || world[newX][newY - 1][newZ] != 0 || world[newX][newY - 2][newZ] != 0 ||
+        newY < 2) {
+        printf("no space\n");
+        world[humans[index].x][humans[index].y][humans[index].z] = ORANGE;
+        world[humans[index].x][humans[index].y - 1][humans[index].z] = BLACK;
+        world[humans[index].x][humans[index].y - 2][humans[index].z] = WHITE;
+    }
+    else {
+        world[newX][newY][newZ] = ORANGE; //head
+        world[newX][newY - 1][newZ] = BLACK; //torso
+        world[newX][newY - 2][newZ] = WHITE; //legs
+
+
+
+        //update the stuct to the new position
+        humans[index].x = newX;
+        humans[index].y = newY;
+        humans[index].z = newZ;
+    }
+
+}
+
+void makeHuman(int x, int y, int z) {
+    if (numHumans < MAX_HUMANS) {
+        humans[numHumans].x = x;
+        humans[numHumans].y = y;
+        humans[numHumans].z = z;
+        numHumans++;
+    }
+    else {
+        printf("Max number of humans reached.\n");
+    }
+}
+
+/*** collisionResponse() ***/
+/* -performs collision detection and response */
+/*  sets new xyz  to position of the viewpoint after collision */
+/* -can also be used to implement gravity by updating y position of vp*/
+/* note that the world coordinates returned from getViewPosition()
+   will be the negative value of the array indices */
 void collisionResponse() {
-    int i;
     float nextX, nextY, nextZ;
     float currX, currY, currZ;
     getViewPosition(&nextX, &nextY, &nextZ);
@@ -113,14 +170,9 @@ void collisionResponse() {
 
     //for use when checking the contents of the world array
     int nextXi, nextYi, nextZi; //floored integers of next positions
-    int currXi, currYi, currZi; //floored integers of current positions
-    float collBuff = 1.5;
     nextXi = (int)floor(nextX);
     nextYi = (int)floor(nextY);
     nextZi = (int)floor(nextZ);
-    currXi = (int)floor(currX);
-    currYi = (int)floor(currY);
-    currZi = (int)floor(currZ);
 
 
     //detects out of bounds
@@ -130,7 +182,7 @@ void collisionResponse() {
 
     //block collision
     if (world[nextXi][nextYi][nextZi] != 0 &&
-        (nextX < nextXi + 1.2 && nextY < nextYi + 1.2 && nextZ < nextZi + 1.2)) {
+        (nextX < nextXi + 1.5 && nextY < nextYi + 1.5 && nextZ < nextZi + 1.5)) { //buffers to try and prevent clipping
         setViewPosition(currX, currY, currZ); //don't let us move
     }
 }
@@ -295,26 +347,60 @@ void update() {
 
     }
     else {
-        double time_elapsed;
+        int i;
+        float currX, currY, currZ, nextX, nextY, nextZ, deltaX, deltaY, deltaZ;
         end = clock();
-        time_elapsed = ((double)end - start) / CLOCKS_PER_SEC;
 
-        //do stuff based on how much time has passed here
+        //gravity things here
+        if ((double)(end - gravityTimer) / CLOCKS_PER_SEC > .2) {
 
-        float x, y, z;
-        getOldViewPosition(&x, &y, &z);
-        y += time_elapsed * (-9.8);
+            if (flycontrol == 0 && numHumans > 0) { //moves all humans down 1 space every cycle
+                printf("gravity\n");
+                for (i = 0; i < numHumans; i++) {
+                    moveHuman(0, -1, 0, i);
+                }
+            }
+
+            gravityTimer = end; //reset clock cycle
+        }
+
+        //do momentum things here 
+        if ((double)(end - momentumTimer) / CLOCKS_PER_SEC > .1) {
+            getViewPosition(&nextX, &nextY, &nextZ);
+            getOldViewPosition(&currX, &currY, &currZ);
+
+            if (lastX == nextX && lastY == nextY && lastZ == nextZ) { //check last and new. If the same, no key press. Need to decelerate 
+                deltaX = (nextX - currX) * decelMod; //calculate the total distance moved
+                deltaY = (nextY - currY) * decelMod; //multiply by deceleration mod to get the deceleration step
+                deltaZ = (nextZ - currZ) * decelMod;
+
+                setOldViewPosition(nextX, nextY, nextZ); //move the current position to the next position
+                nextX += deltaX;
+                nextY += deltaY;
+                nextZ += deltaZ;
+                setViewPosition(nextX, nextY, nextZ); //add the momentum to the next position
+                collisionResponse();
+            }
+            
+            lastX = nextX; //store the last position so we have something to compare to next step
+            lastY = nextY;
+            lastZ = nextZ;
+            momentumTimer = end; //reset clock cycle
+        }
+
+
+
 
 
     }
 }
 
 
-/* called by GLUT when a mouse button is pressed or released */
-/* -button indicates which button was pressed or released */
-/* -state indicates a button down or button up event */
-/* -x,y are the screen coordinates when the mouse is pressed or */
-/*  released */
+/* called by GLUT when a mouse button is pressed or released
+   -button indicates which button was pressed or released
+   -state indicates a button down or button up event
+   -x,y are the screen coordinates when the mouse is pressed or
+    released */
 void mouse(int button, int state, int x, int y) {
 
     if (button == GLUT_LEFT_BUTTON)
@@ -397,7 +483,7 @@ int readGroundFile() {
     }
 
     char c;
-    int x, y, z, row, col, maxH;
+    int x, y, z, row, col, maxH, colour;
 
     c = getc(fp);
     if (c != 'P') {
@@ -417,10 +503,21 @@ int readGroundFile() {
     fscanf(fp, "%d", &row);
     fscanf(fp, "%d", &col);
     fscanf(fp, "%d", &maxH);
+    //printf("%d %d %d\n", row, col, maxH);o
     for (x = 0; x < row - 1; x++) {
         for (z = col - 1; z >= 0; z--) {
             fscanf(fp, "%d", &y);
-            world[x][(int)floor(y / 9)][z] = 3; //5.1 scales 255 to exactly 50.
+            y = (int)floor(y / 20);
+            if (y < 5) {
+                colour = 2;
+            }
+            else if (y > 30) {
+                colour = 5;
+            }
+            else {
+                colour = 1;
+            }
+            world[x][y][z] = colour;
         }
     }
     fclose(fp);
@@ -509,10 +606,25 @@ int main(int argc, char** argv)
                 }
             }
         }
+        else {
+            makeHuman(10, 40, 10);
+            makeHuman(25, 35, 25);
+            makeHuman(35, 49, 35);
+            makeHuman(50, 43, 50);
+        }
+
+        float newX, newY, newZ;
+        getViewPosition(&newX, &newY, &newZ);
+        setOldViewPosition(newX, newY, newZ); //make sure the old view position has valid values at the start
+        lastX = newX;
+        lastY = newY;
+        lastZ = newZ;
+        gravityTimer = clock();
+        momentumTimer = clock();
     }
+
     /* starts the graphics processing loop */
     /* code after this will not run until the program exits */
-    start = clock();
     glutMainLoop();
     return 0;
 }

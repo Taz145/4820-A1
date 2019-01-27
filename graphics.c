@@ -21,7 +21,6 @@ extern void buildDisplayList();
 extern void mouse(int, int, int, int);
 extern void draw2D();
 
-
 /* flags used to control the appearance of the image */
 int lineDrawing = 0; // draw polygons as solid or lines
 int lighting = 1; // use diffuse and specular lighting
@@ -253,6 +252,12 @@ void getOldViewPosition(float *x, float *y, float *z) {
    *x = oldvpx;
    *y = oldvpy;
    *z = oldvpz;
+}
+
+void setOldViewPosition(float x, float y, float z) {
+    oldvpx = x;
+    oldvpy = y;
+    oldvpz = z;
 }
 
 /* sets the current orientation of the viewpoint */
