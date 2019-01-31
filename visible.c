@@ -46,7 +46,7 @@ extern int fps;
 	/* flag indicates the program is a client when set = 1 */
 extern int netClient;
 	/* flag indicates the program is a server when set = 1 */
-extern int netServer; 
+extern int netServer;
 
 	/* frustum corner coordinates */
 float corners[4][3];
@@ -55,7 +55,7 @@ float corners[4][3];
 
 float lengthTwoPoints(float x1, float y1, float z1, float x2, float y2, float z2) {
 float result;
-   result = sqrtf( powf((x1 - x2), 2.0) + powf((y1 - y2), 2.0) 
+   result = sqrtf( powf((x1 - x2), 2.0) + powf((y1 - y2), 2.0)
       + powf((z1 - z2), 2.0) );
    return(result);
 }
@@ -74,11 +74,12 @@ void cross(float x1, float y1, float z1, float x2, float y2, float z2,
 }
 
 	/* returns radians */
-void dot (float x1, float y1, float z1, float x2, float y2, float z2) {
+float dot (float x1, float y1, float z1, float x2, float y2, float z2) {
 float result;
    result = (x1 * x2) + (y1 * y2) + (z1 * z2);
    result /= (lengthVector(x1, y1, z1) * lengthVector(x2, y2, z2));
    result = acosf(result);
+   return (result);
 }
 
 	/* the next two function use Cramer's rule to find the intersection */
@@ -88,11 +89,11 @@ float result;
 double finddet(double a1,double a2, double a3,double b1, double b2,double b3, double c1, double c2, double c3)
 {
 	/*expansion of a 3x3 determinant*/
-   return ((a1*b2*c3)-(a1*b3*c2)-(a2*b1*c3)+(a3*b1*c2)+(a2*b3*c1)-(a3*b2*c1)); 
+   return ((a1*b2*c3)-(a1*b3*c2)-(a2*b1*c3)+(a3*b1*c2)+(a2*b3*c1)-(a3*b2*c1));
 }
 
-void intersect(float a1, float b1, float c1, float d1, 
-   float a2, float b2, float c2, float d2, 
+void intersect(float a1, float b1, float c1, float d1,
+   float a2, float b2, float c2, float d2,
    float a3, float b3, float c3, float d3,
    float *x, float *y, float *z) {
 float det, detx, dety, detz;
@@ -101,7 +102,7 @@ float det, detx, dety, detz;
    detx=finddet(d1,d2,d3,b1,b2,b3,c1,c2,c3);
    dety=finddet(a1,a2,a3,d1,d2,d3,c1,c2,c3);
    detz=finddet(a1,a2,a3,b1,b2,b3,d1,d2,d3);
-     
+
 	/*Print Answers depending on various conditions*/
    if(d1==0 && d2==0 && d3==0 && det==0) {
       printf("\n Infinite Solutions\n ");
@@ -118,7 +119,7 @@ float det, detx, dety, detz;
       printf("\n Infinite Solutions\n ");
    else
       printf("No Solution\n ");
-} 
+}
 
 /***********************/
 
@@ -338,7 +339,7 @@ int i, j, k;
 	/* if the octree cube is in the frustum then */
 	/* if the bottom octree level is reached then */
 	/* if the visible cube is not empty and is not surrounded then */
-	/* add to the display list */ 
+	/* add to the display list */
    if (CubeInFrustum(bx + ((tx-bx)/2), by + ((ty-by)/2), bz + ((tz-bz)/2), length )) {
       if (level == OCTREE_LEVEL) {
 		/* draw cubes */
@@ -355,14 +356,14 @@ int i, j, k;
 				/*    always draw it */
                        if ( (i > 0) && (i < WORLDX-1) &&
                             (j > 0) && (j < WORLDY-1) &&
-                            (k > 0) && (k < WORLDZ-1) && 
-                         ((world[i+1][j][k] == 0) || (world[i-1][j][k] == 0) 
-                         || (world[i][j+1][k] == 0) || (world[i][j-1][k] == 0) 
+                            (k > 0) && (k < WORLDZ-1) &&
+                         ((world[i+1][j][k] == 0) || (world[i-1][j][k] == 0)
+                         || (world[i][j+1][k] == 0) || (world[i][j-1][k] == 0)
                          || (world[i][j][k+1] == 0) || (world[i][j][k-1] == 0)))
                              addDisplayList(i, j, k);
                        else if ( (i == 0) || (i == WORLDX-1) ||
                                  (j == 0) || (j == WORLDY-1) ||
-                                 (k == 0) || (k == WORLDZ-1) ) 
+                                 (k == 0) || (k == WORLDZ-1) )
                                addDisplayList(i, j, k);
                  }
               }
