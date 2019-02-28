@@ -76,11 +76,17 @@ extern int displayMap;
 /* flag indicates use of a fixed viewpoint */
 extern int fixedVP;
 
-//used for timing animation
-clock_t gravityTimer, momentumTimer, end;
+extern float tubeData[TUBE_COUNT][6];
+extern int tubeColour[TUBE_COUNT];
+extern short tubeVisible[TUBE_COUNT];
 
-double decelMod = 0.9;
+//used for timing animation
+clock_t gravityTimer, momentumTimer, rayAnimationTimer, end;
+clock_t tubeTimer[TUBE_COUNT];
+
+double decelMod = 0.9, accelMod = 1.0;
 float lastX, lastY, lastZ;
+int numTubes = 0;
 
 int numHumans = 0; //used for error checking and indexing of the below array
 Human humans[MAX_HUMANS];
@@ -98,6 +104,12 @@ extern int setUserColour(int, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
 void unsetUserColour(int);
 extern void getUserColour(int, GLfloat *, GLfloat *, GLfloat *, GLfloat *,
     GLfloat *, GLfloat *, GLfloat *, GLfloat *);
+
+extern void createTube(int, float, float, float, float, float, float, int);
+
+extern void hideTube(int);
+
+extern void showTube(int);
 
 /********* end of extern variable declarations **************/
 
@@ -121,7 +133,7 @@ void moveHuman(int x, int y, int z, int index) {
     //checks if there is space for the torso and legs and if there are any other blocks in those spaces
     if (world[newX][newY][newZ] != 0 || world[newX][newY - 1][newZ] != 0 || world[newX][newY - 2][newZ] != 0 ||
         newY < 2) {
-        printf("no space\n");
+        //printf("no space\n");
         world[humans[index].x][humans[index].y][humans[index].z] = ORANGE;
         world[humans[index].x][humans[index].y - 1][humans[index].z] = BLACK;
         world[humans[index].x][humans[index].y - 2][humans[index].z] = WHITE;
@@ -146,10 +158,47 @@ void makeHuman(int x, int y, int z) {
         humans[numHumans].x = x;
         humans[numHumans].y = y;
         humans[numHumans].z = z;
+        world[humans[numHumans].x][humans[numHumans].y][humans[numHumans].z] = ORANGE;
+        world[humans[numHumans].x][humans[numHumans].y - 1][humans[numHumans].z] = BLACK;
+        world[humans[numHumans].x][humans[numHumans].y - 2][humans[numHumans].z] = WHITE;
         numHumans++;
     }
     else {
         printf("Max number of humans reached.\n");
+    }
+}
+
+void moveTube(int tubeNum) {
+    float bx, by, bz, ex, ey, ez;
+    int x, y, z;
+
+    bx = tubeData[tubeNum][3]; //ex
+    by = tubeData[tubeNum][4]; //ey
+    bz = tubeData[tubeNum][5]; //ez
+    ex = bx + (bx - tubeData[tubeNum][0]);
+    ey = by + (by - tubeData[tubeNum][1]);
+    ez = bz + (bz - tubeData[tubeNum][2]);
+
+    x = (int)floor(bx);
+    y = (int)floor(by);
+    z = (int)floor(bz);
+
+    if (x < 0 || x > 99 || y < 0 || y > 49 || z < 0 || z > 99) { //prevents OOB errors in world array
+        tubeVisible[tubeNum] = 0;
+    }
+    else {
+        if (world[x][y][z] == ORANGE || world[x][y][z] == BLACK || world[x][y][z] == WHITE) {
+            printf("A tube has hit a person!\n");
+            tubeVisible[tubeNum] = 0;
+        }
+        else {
+            tubeData[tubeNum][0] = bx;
+            tubeData[tubeNum][1] = by;
+            tubeData[tubeNum][2] = bz;
+            tubeData[tubeNum][3] = ex;
+            tubeData[tubeNum][4] = ey;
+            tubeData[tubeNum][5] = ez;
+        }
     }
 }
 
@@ -160,13 +209,18 @@ void makeHuman(int x, int y, int z) {
 /* note that the world coordinates returned from getViewPosition()
    will be the negative value of the array indices */
 void collisionResponse() {
-    float nextX, nextY, nextZ;
-    float currX, currY, currZ;
+    int i;
+    float nextX, nextY, nextZ, currX, currY, currZ, deltaX, deltaY, deltaZ;
+
     getViewPosition(&nextX, &nextY, &nextZ);
     getOldViewPosition(&currX, &currY, &currZ);
     nextX *= -1;
     nextY *= -1;
     nextZ *= -1;
+
+    deltaX = fabs(nextX - currX);
+    deltaY = fabs(nextY - currY);
+    deltaZ = fabs(nextZ - currZ);
 
     //for use when checking the contents of the world array
     int nextXi, nextYi, nextZi; //floored integers of next positions
@@ -185,8 +239,44 @@ void collisionResponse() {
         (nextX < nextXi + 1.5 && nextY < nextYi + 1.5 && nextZ < nextZi + 1.5)) { //buffers to try and prevent clipping
         setViewPosition(currX, currY, currZ); //don't let us move
     }
+
+    ////checking for skipping blocks
+    //if (deltaX > 1) {
+    //    for (i = 0; i < deltaX; i++) {
+    //        if (world[nextXi + i][nextYi][nextZi] != 0) {
+    //            setViewPosition(currX, currY, currZ);
+    //        }
+    //    }
+    //}
+
+    //if (deltaY > 1) {
+    //    for (i = 0; i < deltaY; i++) {
+    //        if (world[nextXi][nextYi+i][nextZi] != 0) {
+    //            setViewPosition(currX, currY, currZ);
+    //        }
+    //    }
+    //}
+
+    //if (deltaZ > 1) {
+    //    for (i = 0; i < deltaZ; i++) {
+    //        if (world[nextXi][nextYi][nextZi + i] != 0) {
+    //            setViewPosition(currX, currY, currZ);
+    //        }
+    //    }
+    //}
+
+
+
 }
 
+//just calls glutBitmapCharacter for the length of the string. Not an actual glut function
+void glutBitmapString(void *fontID, const unsigned char *string) {
+    int len, i;
+    len = strlen(string);
+    for (i = 0; i < len; i++) {
+        glutBitmapCharacter(fontID, string[i]);
+    }
+}
 
 /******* draw2D() *******/
 /* draws 2D shapes on screen */
@@ -213,9 +303,10 @@ void draw2D() {
     }
     else {
         //draws a 1:1 scale minimap of the world. Does not have functionality for user defined colours
-        if (displayMap == 1) {
-            int x, y, z;
-            int colour;
+        if (displayMap != 0) {
+            int i, mapSize, mapScale, xOrigin, yOrigin, playerScale, humanScale, rayScale;
+            float x, y, z, bx,by,ex,ey;
+            char coords[100];
             GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
             GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
             GLfloat green[] = { 0.0, 1.0, 0.0, 1.0 };
@@ -225,49 +316,73 @@ void draw2D() {
             GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
             GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
             GLfloat grey[] = { 0.0, 0.0, 0.0, 0.5 };
-            set2Dcolour(grey);
-            draw2Dbox(0, 0, 100, 100);
+            
+            if (displayMap == 1) {
+                playerScale = 6;
+                mapScale = 2;
+                humanScale = 4;
+                rayScale = 2;
+            }
+            else if (displayMap == 2) {
+                playerScale = 8;
+                mapScale = 8;
+                humanScale = 8;
+                rayScale = 4;
+            }
+            mapSize = mapScale * 100;
+            
+            xOrigin = screenWidth - mapSize;
+            yOrigin = screenHeight - mapSize;
+
             glDisable(GL_DEPTH_TEST);
-            const char* colours[8] = { "blue","red","green","yellow","purple","orange","white","black" };
-            for (x = 0; x < WORLDX - 1; x++) {
-                for (z = 0; z < WORLDZ - 1; z++) {
-                    y = WORLDY - 1;
-                    while (world[x][y][z] == 0 && y > 0) y--; //ignore empty spaces
-                    if (world[x][y][z] != 0) {
-                        colour = world[x][y][z];
-                        if (colour == 1) {
-                            set2Dcolour(green);
-                        }
-                        else if (colour == 2) {
-                            set2Dcolour(blue);
-                        }
-                        else if (colour == 3) {
-                            set2Dcolour(red);
-                        }
-                        else if (colour == 4) {
-                            set2Dcolour(black);
-                        }
-                        else if (colour == 5) {
-                            set2Dcolour(white);
-                        }
-                        else if (colour == 6) {
-                            set2Dcolour(purple);
-                        }
-                        else if (colour == 7) {
-                            set2Dcolour(orange);
-                        }
-                        else if (colour == 8) {
-                            set2Dcolour(yellow);
-                        }
-                        draw2Dpoint(x, z, 1, 1);
-                    }
+
+            set2Dcolour(grey);
+            draw2Dbox(screenWidth, screenHeight, xOrigin, yOrigin);
+            set2Dcolour(red);
+            draw2Dline(screenWidth, screenHeight, xOrigin, screenHeight, 1); // top line
+            draw2Dline(screenWidth, yOrigin, xOrigin, yOrigin, 1); // bottom line
+            draw2Dline(screenWidth, screenHeight, screenWidth, yOrigin, 1); //right line
+            draw2Dline(xOrigin, screenHeight, xOrigin, yOrigin, 1); //left line
+
+            for (i = 0; i < numHumans; i++) {
+                set2Dcolour(white);
+                draw2Dpoint( xOrigin + (humans[i].x * mapScale), (yOrigin + humans[i].z * mapScale), 4, 0);
+            }
+            getOldViewPosition(&x, &y, &z);
+
+            //print coordinates to the screen
+            snprintf(coords, sizeof(coords), "X: %2.2f Y: %2.2f Z: %2.2f", x*-1, y*-1, z*-1);
+
+            set2Dcolour(white);
+            draw2Dbox(0, 9, 215, 25); //draws a white box so you can see the text
+
+            glDisable(GL_LIGHTING); //lets us add colour to the bitmap
+            glRasterPos2i(0, 10); //position of the text
+            glColor3f(0.0f, 0.0f, 0.0f); //colour of the text
+            glutBitmapString(GLUT_BITMAP_HELVETICA_18, coords); //draws the string to the screen
+            glEnable(GL_LIGHTING); //reenables lighting
+
+            x = (int)floor(x) * -1;
+            y = (int)floor(z) * -1;
+            draw2Dtriangle(xOrigin + (x * mapScale), yOrigin + (y * mapScale), 
+                xOrigin + (x * mapScale) + playerScale, yOrigin + (y * mapScale), 
+                xOrigin + (x * mapScale) + playerScale/2, yOrigin + (y * mapScale) + playerScale);
+            
+            set2Dcolour(red);
+            for (i = 0; i < TUBE_COUNT; i++) {
+                if (tubeVisible[i] == 1) {
+                    bx = tubeData[i][0] * mapScale;
+                    by = tubeData[i][2] * mapScale;
+                    ex = tubeData[i][3] * mapScale;
+                    ey = tubeData[i][5] * mapScale;
+                    draw2Dline(xOrigin + bx, yOrigin + by, xOrigin + ex, yOrigin + ey, rayScale);
                 }
             }
+
             glEnable(GL_DEPTH_TEST);
         }
     }
 }
-
 
 /*** update() ***/
 /* background process, it is called when there are no other events */
@@ -354,44 +469,62 @@ void update() {
         //gravity things here
         if ((double)(end - gravityTimer) / CLOCKS_PER_SEC > .2) {
 
-            if (flycontrol == 0 && numHumans > 0) { //moves all humans down 1 space every cycle
-                printf("gravity\n");
+            if (numHumans > 0) { //moves all humans down 1 space every cycle
+                //printf("gravity\n");
                 for (i = 0; i < numHumans; i++) {
                     moveHuman(0, -1, 0, i);
                 }
             }
 
+
             gravityTimer = end; //reset clock cycle
         }
 
+        //fast animation but it smooth tho
+        if ((double)(end - rayAnimationTimer) / CLOCKS_PER_SEC > .03) {
+            //ray movement here
+            for (i = 0; i < TUBE_COUNT; i++) {
+                if (tubeVisible[i] == 1) {
+                    moveTube(i);
+                }
+            }
+            rayAnimationTimer = end;
+        }
+
         //do momentum things here 
-        if ((double)(end - momentumTimer) / CLOCKS_PER_SEC > .1) {
+        if ((double)(end - momentumTimer) / CLOCKS_PER_SEC > .01) {
             getViewPosition(&nextX, &nextY, &nextZ);
             getOldViewPosition(&currX, &currY, &currZ);
 
-            if (lastX == nextX && lastY == nextY && lastZ == nextZ) { //check last and new. If the same, no key press. Need to decelerate 
-                deltaX = (nextX - currX) * decelMod; //calculate the total distance moved
-                deltaY = (nextY - currY) * decelMod; //multiply by deceleration mod to get the deceleration step
-                deltaZ = (nextZ - currZ) * decelMod;
+            deltaX = (nextX - currX); //calculate the total distance moved
+            deltaY = (nextY - currY);
+            deltaZ = (nextZ - currZ);
 
+            if (lastX == nextX && lastY == nextY && lastZ == nextZ) { //check last and new. If the same, no key press. Need to decelerate 
                 setOldViewPosition(nextX, nextY, nextZ); //move the current position to the next position
-                nextX += deltaX;
-                nextY += deltaY;
-                nextZ += deltaZ;
+                nextX += deltaX * decelMod;
+                nextY += deltaY * decelMod;
+                nextZ += deltaZ * decelMod;
+                accelMod -= .5;
+                if (accelMod < 1.2) accelMod = 1.0;
                 setViewPosition(nextX, nextY, nextZ); //add the momentum to the next position
                 collisionResponse();
             }
-            
+            else if (deltaX >= .1 || deltaY >= .1 || deltaZ >= .1) { //acceleration. Thershold of .1 so it ignores the movement of the deceleration causes
+                setOldViewPosition(nextX, nextY, nextZ);
+                nextX += deltaX * accelMod;
+                nextY += deltaY * accelMod;
+                nextZ += deltaZ * accelMod;
+                accelMod += .1;
+                if (accelMod > 3) accelMod = 3;
+                setViewPosition(nextX, nextY, nextZ);
+                collisionResponse();
+            }
             lastX = nextX; //store the last position so we have something to compare to next step
             lastY = nextY;
             lastZ = nextZ;
             momentumTimer = end; //reset clock cycle
         }
-
-
-
-
-
     }
 }
 
@@ -403,19 +536,34 @@ void update() {
     released */
 void mouse(int button, int state, int x, int y) {
 
-    if (button == GLUT_LEFT_BUTTON)
-        printf("left button - ");
-    else if (button == GLUT_MIDDLE_BUTTON)
-        printf("middle button - ");
-    else
-        printf("right button - ");
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_UP) {
 
-    if (state == GLUT_UP)
-        printf("up - ");
-    else
-        printf("down - ");
+            //printf("left button - ");
+            float x, y, z, xOr, yOr, zOr, xRot, yRot, bx, by, bz, ex, ey, ez;
+            getOldViewPosition(&x, &y, &z);
+            getViewOrientation(&xOr, &yOr, &zOr);
 
-    printf("%d %d\n", x, y);
+
+            xRot = xOr / 180 * 3.141592;
+            yRot = yOr / 180 * 3.141592;
+
+            //printf("sin(yRot) %2.2f, sin(xRot) %2.2f, cos(xRot) %2.2f\n", sin(yRot), sin(xRot), cos(xRot));
+
+            ex = bx = fabs(x);
+            ey = by = fabs(y);
+            ez = bz = fabs(z);
+
+            ex += sin(yRot);
+            ey -= sin(xRot);
+            ez -= cos(yRot);
+
+            createTube(numTubes, bx, by, bz, ex, ey, ez, 3);
+            tubeTimer[numTubes] = clock();
+            numTubes++;
+            if (numTubes >= TUBE_COUNT) numTubes = 0;
+        }
+    }
 }
 
 void fillGaps() {
@@ -584,7 +732,7 @@ int main(int argc, char** argv)
     else {
         //TODO see about adding in code to change the curor to help the player stay right side up
         //i.e cursor points up when upside down
-        glutSetCursor(GLUT_CURSOR_NONE);
+        //glutSetCursor(GLUT_CURSOR_NONE);
         int x, y, z;
         if (readGroundFile() == 1) { //no valid world file. Make default world
             //init the world array
@@ -612,17 +760,16 @@ int main(int argc, char** argv)
             makeHuman(35, 49, 35);
             makeHuman(50, 43, 50);
         }
-
-        float newX, newY, newZ;
-        getViewPosition(&newX, &newY, &newZ);
-        setOldViewPosition(newX, newY, newZ); //make sure the old view position has valid values at the start
-        lastX = newX;
-        lastY = newY;
-        lastZ = newZ;
-        gravityTimer = clock();
-        momentumTimer = clock();
     }
-
+    float newX, newY, newZ;
+    getViewPosition(&newX, &newY, &newZ);
+    setOldViewPosition(newX, newY, newZ); //make sure the old view position has valid values at the start
+    lastX = newX;
+    lastY = newY;
+    lastZ = newZ;
+    gravityTimer = clock();
+    momentumTimer = clock();
+    rayAnimationTimer = clock();
     /* starts the graphics processing loop */
     /* code after this will not run until the program exits */
     glutMainLoop();

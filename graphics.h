@@ -30,6 +30,8 @@
 	/* maximum number of user defined colours */
 #define NUMBERCOLOURS 100
 
+#define TUBE_COUNT 10
+
 //defines for simplification of default colours
 #define EMPTY 0
 #define GREEN 1
